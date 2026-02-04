@@ -32,6 +32,7 @@
             border-style: solid;
             border-color: #000;
             border-width: 1px;
+            cursor: pointer;
         }
         .colorBox.selected {
             border-color: #088cff;
@@ -41,7 +42,12 @@
             font-size: 10px;
         }
         button {
-
+            cursor: pointer;
+        }
+        .title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -75,54 +81,59 @@
                 </div>
             </div>
         </div>
-        <div class="box" style="position: absolute;left: 10px; top: 20px;display:flex;flex-direction: column;">
-            <small>Dot size</small>
-            <input id="size_input" value="2" type="number" placeholder="Dot size" onchange="dotSizeChanged(this.value)" style="">
-            <div style="display:flex;justify-content: space-between;font-size: 8px;margin-bottom:6px;">
-                <div>< A</div><div>S ></div>
-            </div>
+        <div  style="position: absolute;left: 10px; top: 20px;">
+            <div class="box" style="margin-bottom:10px;display:flex;flex-direction: column;">
+                <div class="title">Image data</div>
+                <small>Image size</small>
+                <input id="image_size_input" value="50" type="number" placeholder="Image size" onchange="imageSizeChanged(this.value)" style="margin-bottom:6px;">
 
-            <small>Image size</small>
-            <input id="image_size_input" value="56" type="number" placeholder="Image size" onchange="imageSizeChanged(this.value)" style="margin-bottom:6px;">
-
-            <small>Layer offset</small>
-            <div style="display: flex;">
-                <div style="margin-right: 6px;">
-                    <small>x</small>
-                    <input id="layer_x" type="number" style="width: 50px;" onchange="moveLayer()">
+                <small>Dot size</small>
+                <input id="size_input" value="2" type="number" placeholder="Dot size" onchange="dotSizeChanged(this.value)" style="">
+                <div style="display:flex;justify-content: space-between;font-size: 8px;margin-bottom:6px;">
+                    <div>< A</div><div>S ></div>
                 </div>
-                <div style="margin-right:6px;">
-                    <small>y</small>
-                    <input id="layer_y" type="number" style="width: 50px;" onchange="moveLayer()">
-                </div>
-                <button onclick="centerH()" title="Center horizontal">cH</button>
-                <button onclick="centerV()" title="Center vertical">cV</button>
+                <button onclick="savePNG()" style="margin-top:10px">Save as PNG</button>
             </div>
+            <div class="box" style="margin-bottom:10px;">
+                <div class="title">Virtual layer data</div>
+                <small>Layer offset</small>
+                <div style="display: flex;">
+                    <div style="margin-right: 6px;">
+                        <small>x</small>
+                        <input id="layer_x" type="number" style="width: 50px;" onchange="moveLayer()">
+                    </div>
+                    <div style="margin-right:6px;">
+                        <small>y</small>
+                        <input id="layer_y" type="number" style="width: 50px;" onchange="moveLayer()">
+                    </div>
+                    <button onclick="centerH()" title="Center horizontal">cH</button>
+                    <button onclick="centerV()" title="Center vertical">cV</button>
+                </div>
 
-            <small>Layer size</small>
-            <div style="display: flex;">
-                <div style="margin-right: 6px;">
-                    <small>width</small>
-                    <input id="layer_w" type="number" style="width: 50px;" onchange="resizeLayerW()">
+                <small>Virtual layer size (500x500)</small>
+                <div style="display: flex;">
+                    <div style="margin-right: 6px;">
+                        <small>width</small>
+                        <input id="layer_w" type="number" style="width: 50px;" onchange="resizeLayerW()" min="1">
+                    </div>
+                    <div style="margin-right: 6px;">
+                        <small>height</small>
+                        <input id="layer_h" type="number" style="width: 50px;" onchange="resizeLayerH()">
+                    </div>
+                    <button id="layer_wh" onclick="toggleLayerWH()" title="Block/Unblock keep original size ratio">B</button>
                 </div>
-                <div style="margin-right: 6px;">
-                    <small>height</small>
-                    <input id="layer_h" type="number" style="width: 50px;" onchange="resizeLayerH()">
-                </div>
-                <button id="layer_wh" onclick="toggleLayerWH()" title="Block/Unblock keep original size ratio">B</button>
+                <button onclick="uploadImage()" style="margin-top:10px">Upload image</button>
             </div>
-            <button onclick="uploadImage()" style="margin-top:10px">Upload image</button>
-            <button onclick="savePNG()" style="margin-top:10px">Save as PNG</button>
         </div>
     </div>
 </body>
 <script>
     const canvas = document.getElementById("canvas");
     const canvasCtx = canvas.getContext("2d");
-    var P_SIZE = 56;
-    var DOT_SIZE = 2;
+    const DRAW_SIZE = 500;
 
-    var DRAW_SIZE = 500;
+    var P_SIZE = 50;
+    var DOT_SIZE = 2;
 
     var START_X;
     var START_Y;
@@ -184,6 +195,8 @@
     }
 
     function resizeLayer(w=null,h=null) {
+        if(isNaN(w) || isNaN(h))
+            return;
         if(w == null) {
             if(LAYERS[CURRENT_LAYER].blockWH) {
                 w = h*LAYERS[CURRENT_LAYER].ow/LAYERS[CURRENT_LAYER].oh;
@@ -223,16 +236,24 @@
     }
 
     function centerH() {
-        LAYERS[CURRENT_LAYER].x = P_SIZE*(DRAW_SIZE/2-LAYERS[CURRENT_LAYER].w/2)/DRAW_SIZE;
+        LAYERS[CURRENT_LAYER].x = (DRAW_SIZE/2-LAYERS[CURRENT_LAYER].w/2);
         layerX.value = LAYERS[CURRENT_LAYER].x;
 
         drawCanvas();
     }
     function centerV() {
-        LAYERS[CURRENT_LAYER].y = P_SIZE*(DRAW_SIZE/2-LAYERS[CURRENT_LAYER].h/2)/DRAW_SIZE;
+        LAYERS[CURRENT_LAYER].y = (DRAW_SIZE/2-LAYERS[CURRENT_LAYER].h/2);
         layerY.value = LAYERS[CURRENT_LAYER].y;
 
         drawCanvas();
+    }
+
+    function rewind() {
+        if(LAYERS[CURRENT_LAYER].commands.length > 0) {
+            let cmd = LAYERS[CURRENT_LAYER].commands.splice(LAYERS[CURRENT_LAYER].commands.length-1,1)[0];
+            delete LAYERS[CURRENT_LAYER].map[cmd[0]];
+            drawCanvas();
+        }
     }
 </script>
 <script>
@@ -305,7 +326,6 @@
             'oh':height,
             'commands':[],
             'map':{},
-            'lastColor':null,
             'showing':true,
             'content':content,
             'blockWH':true
@@ -346,43 +366,33 @@
     }
 
     function dotAtLayer(e,layer,clickX,clickY) {
+        let cx = clickX-(START_X+layer.x);
+        let cy = clickY-(START_Y+layer.y);
+        if(cx < 0 || cx > layer.width || cy < 0 || cy > layer.height) // out of bounds
+            return;
+
         if(!layer.showing) {
             layer.showing = true;
         } else {
-            const scaleWidth = DOT_SIZE * DRAW_SIZE/P_SIZE;
 
-            const x = Math.floor((clickX-START_X)/scaleWidth)*DOT_SIZE - layer.x;
-            const y = Math.floor((clickY-START_Y)/scaleWidth)*DOT_SIZE - layer.y;
-            console.log(x+" <> "+y);
-            const cmd = `ctx.fillRect(${x}, ${y}, ${DOT_SIZE}, ${DOT_SIZE});`;
-
+            const color = COLORS[CURRENT_COLOR];
+            let dSize = DRAW_SIZE*DOT_SIZE/P_SIZE;
+            let x = Math.floor(cx/(DRAW_SIZE/(P_SIZE/DOT_SIZE)))*dSize;
+            let y = Math.floor(cy/(DRAW_SIZE/(P_SIZE/DOT_SIZE)))*dSize;
+            const map = `${x}_${y}_${dSize}_${color}`;
             if (e.shiftKey) {
-                let map;
-                for(let i=0; i < layer.commands.length; i++) {
-                    const item = layer.commands[i][0];
-                    const mat = item.match(/-?\d+/g);
-                    if(mat == null)
-                        continue;
-                    const parts = mat.map(Number);
-                    if(x >= parts[0] && x < parts[0]+parts[2] && y >= parts[1] && y < parts[1]+parts[3]) {
-                        map = `${parts[0]}_${parts[1]}_${parts[2]}_${parts[3]}_${layer.commands[i][1]}`;
-                        delete layer.map[map];
+                layer.commands.forEach((c,i)=>{
+                    const parts = c[0].split("_").map(Number);
+                    if(cx >= parts[0] && cx <= parts[0]+parts[2] && cy >= parts[1] && cy <= parts[1]+parts[2]) {
                         layer.commands.splice(i,1);
-                        i--;
+                        delete layer.map[c[0]];
                     }
-                }
+                });
             } else {
-                const color = COLORS[CURRENT_COLOR];
-                if(color !== layer.lastColor) {
-                    layer.commands.push([`ctx.fillStyle="${color}";`,color])
-                    layer.lastColor = color;
-                }
-
-                const map = `${x}_${y}_${DOT_SIZE}_${DOT_SIZE}_${color}`;
                 if(layer.map[map] != null) {
-                    layer.commands.splice(layer.commands.findIndex(c=>c[0]==cmd&&c[1]==color),1);
+                    layer.commands.splice(layer.commands.findIndex(c=>c[0]==map&&c[1]==color),1);
                 }
-                layer.commands.push([cmd,color]);
+                layer.commands.push([map,color]);
                 layer.map[map] = 1;
             }
         }
@@ -453,8 +463,35 @@
     buildColorDiv();
 </script>
 <script>
+    function buildPreview(previewSize,background=null) {
+        const previewCanvas = document.createElement('canvas');
+        previewCanvas.width = previewSize;
+        previewCanvas.height = previewSize;
+        const pctx = previewCanvas.getContext('2d');
+        if(background != null) {
+            pctx.fillStyle = background;
+            pctx.fillRect(0,0,previewSize,previewSize);
+        }
+        let ratio = previewSize/DRAW_SIZE;
+
+        LAYERS.forEach((l,i)=>{
+            if(l.showing) {
+                let vCanvas = document.createElement('canvas');
+                vCanvas.width = l.w;
+                vCanvas.height = l.h;
+                let vctx = vCanvas.getContext('2d');
+                drawLayer(vctx, l);
+                pctx.drawImage(vCanvas,
+                    0, 0, vCanvas.width, vCanvas.height,
+                    l.x*ratio,l.y*ratio,vCanvas.width*ratio,vCanvas.height*ratio);
+            }
+        });
+
+        return previewCanvas;
+    }
+
     function drawCanvas() {
-        canvasCtx.fillStyle = "#000";
+        canvasCtx.fillStyle = "#999";
         canvasCtx.fillRect(0,0,canvas.width,canvas.height);
 
         let x = START_X;
@@ -467,19 +504,32 @@
 
         canvasCtx.save();
         canvasCtx.translate(START_X,START_Y);
-        const ratio =  DRAW_SIZE/P_SIZE;
         LAYERS.forEach((l,i)=>{
-            if(l.showing)
-                drawLayer(canvasCtx, l,ratio,true,CURRENT_LAYER==i);
+            if(l.showing) {
+                let vCanvas = document.createElement('canvas');
+                vCanvas.width = l.w;
+                vCanvas.height = l.h;
+                let vctx = vCanvas.getContext('2d');
+                drawLayer(vctx, l, true, CURRENT_LAYER==i);
+                canvasCtx.drawImage(vCanvas,l.x,l.y);
+            }
         });
         canvasCtx.restore();
 
-        drawGrid(x,y,ratio);
+        drawGrid(x,y);
+
+        let previewSize = 150;
+        const previewCanvas = buildPreview(previewSize, "#aaa");
+        canvasCtx.save();
+        canvasCtx.translate(20,canvas.height-previewSize-20);
+        canvasCtx.drawImage(previewCanvas,0,0);
+        canvasCtx.restore();
     }
 
     function drawBack() {
+        canvasCtx.globalAlpha = .6;
         canvasCtx.fillStyle = "#ddd";
-        const size = DRAW_SIZE/P_SIZE*4;
+        const size = DRAW_SIZE/13;
         let extra = 0;
         for(let x=START_X; x<START_X+DRAW_SIZE; x+=size) {
             for(let y=START_Y+extra; y<START_Y+DRAW_SIZE; y+=size*2) {
@@ -490,18 +540,22 @@
             else
                 extra = 0;
         }
+        canvasCtx.globalAlpha = 1;
     }
 
-    function drawGrid(xi,yi,ratio) {
+    function drawGrid(xi,yi) {
         canvasCtx.strokeStyle = "red";
         canvasCtx.lineWidth = 0.5;
-        for (let x = xi; x <= xi+DRAW_SIZE; x += DOT_SIZE*ratio) {
+
+        let dSize = DRAW_SIZE*DOT_SIZE/P_SIZE;
+
+        for (let x = xi; x <= xi+DRAW_SIZE; x += dSize) {
             canvasCtx.beginPath();
             canvasCtx.moveTo(x, yi);
             canvasCtx.lineTo(x, yi+DRAW_SIZE);
             canvasCtx.stroke();
         }
-        for (let y = yi; y <= yi+DRAW_SIZE; y += DOT_SIZE*ratio) {
+        for (let y = yi; y <= yi+DRAW_SIZE; y += dSize) {
             canvasCtx.beginPath();
             canvasCtx.moveTo(xi, y);
             canvasCtx.lineTo(xi+DRAW_SIZE, y);
@@ -509,46 +563,40 @@
         }
     }
 
-    function drawLayer(ctx, layer,ratio,border=false,highlight=false,contentS=DRAW_SIZE) {
-        ctx.save();
-        ctx.translate(layer.x*ratio,layer.y*ratio);
+    function drawLayer(ctx, layer, border=false,highlight=false) {
         if(border) {
             if(highlight) {
                 ctx.globalAlpha = 1;
             } else {
-                ctx.globalAlpha = .5;
+                ctx.globalAlpha = .8;
             }
         }
 
         if(layer.content) {
             ctx.drawImage(layer.content,
                 0,0,layer.content.width,layer.content.height,
-                0,0,layer.w*contentS/DRAW_SIZE,layer.h*contentS/DRAW_SIZE);
+                0,0,layer.w,layer.h);
         }
+        let lastColor = null;
         layer.commands.forEach(c => {
-            const cmd = c[0];
-            if(cmd.includes('fillStyle')) {
-                const parts = cmd.split('"');
-                ctx.fillStyle=parts[1];
-            } else {
-                const parts = cmd.match(/-?\d+/g).map(Number);
-                ctx.fillRect(parts[0]*ratio, parts[1]*ratio, parts[2]*ratio, parts[3]*ratio);
+            if(lastColor == null || lastColor != c[1]) {
+                lastColor = c[1];
+                ctx.fillStyle=lastColor
             }
+            const parts = c[0].split("_").map(Number);
+            ctx.fillRect(parts[0],parts[1],parts[2],parts[2]);
         });
+        ctx.globalAlpha = 1;
         if(border) {
             if(highlight) {
-                ctx.globalAlpha = 1;
                 ctx.strokeStyle = "#0f0";
                 ctx.lineWidth = 4;
             } else {
-                ctx.globalAlpha = .5;
                 ctx.strokeStyle = "#00f";
-                ctx.lineWidth = 1;
+                ctx.lineWidth = 2;
             }
             ctx.strokeRect(0,0,layer.w,layer.h);
         }
-
-        ctx.restore();
     }
 
     drawCanvas();
@@ -562,8 +610,7 @@
         touchStartX = e.clientX;
         touchStartY = e.clientY;
 
-        if(touchStartX >= START_X && touchStartX <= START_X+DRAW_SIZE && touchStartY >= START_Y && touchStartY <= START_Y+DRAW_SIZE)
-            dotAtLayer(e,LAYERS[CURRENT_LAYER],touchStartX,touchStartY);
+        dotAtLayer(e,LAYERS[CURRENT_LAYER],touchStartX,touchStartY);
         pressing = true;
     });
     canvas.addEventListener('mousemove', (e) => {
@@ -571,8 +618,7 @@
             touchStartX = e.clientX;
             touchStartY = e.clientY;
 
-            if(touchStartX >= START_X && touchStartX <= START_X+DRAW_SIZE && touchStartY >= START_Y && touchStartY <= START_Y+DRAW_SIZE)
-                dotAtLayer(e,LAYERS[CURRENT_LAYER],touchStartX,touchStartY);
+            dotAtLayer(e,LAYERS[CURRENT_LAYER],touchStartX,touchStartY);
         }
     });
     canvas.addEventListener('mouseup', (e) => {
@@ -580,6 +626,8 @@
     });
 
     document.addEventListener('keydown', function(event) {
+
+        const isModifierKeyPressed = event.ctrlKey || event.metaKey;
         if (event.key === 'w' || event.key === 'W') {
             let color = Math.min(CURRENT_COLOR+1,COLORS.length-1);
             colorSelect(color);
@@ -587,13 +635,13 @@
             let color = Math.max(CURRENT_COLOR-1,0);
             colorSelect(color);
         } else if(event.key === 'ArrowUp') {
-            moveLayer(null,LAYERS[CURRENT_LAYER].y-DOT_SIZE);
+            moveLayer(null,LAYERS[CURRENT_LAYER].y-DRAW_SIZE*DOT_SIZE/P_SIZE);
         } else if(event.key === 'ArrowDown') {
-            moveLayer(null,LAYERS[CURRENT_LAYER].y+DOT_SIZE);
+            moveLayer(null,LAYERS[CURRENT_LAYER].y+DRAW_SIZE*DOT_SIZE/P_SIZE);
         } else if(event.key === 'ArrowLeft') {
-            moveLayer(LAYERS[CURRENT_LAYER].x-DOT_SIZE,null);
+            moveLayer(LAYERS[CURRENT_LAYER].x-DRAW_SIZE*DOT_SIZE/P_SIZE,null);
         } else if(event.key === 'ArrowRight') {
-            moveLayer(LAYERS[CURRENT_LAYER].x+DOT_SIZE,null);
+            moveLayer(LAYERS[CURRENT_LAYER].x+DRAW_SIZE*DOT_SIZE/P_SIZE,null);
         } else if (event.key === 'n' || event.key === 'N') {
             addColor();
         } else if (event.key === 'a' || event.key === 'A') {
@@ -606,18 +654,19 @@
             layerSelected(Math.min(LAYERS.length-1,CURRENT_LAYER+1));
         } else if (event.key === 'i' || event.key === 'I') {
             uploadImage();
+        } else if(isModifierKeyPressed && (event.key === 'z' || event.key === 'Z')) {
+            rewind();
         }
 
         let num = parseInt(event.key);
-        if(isNaN(num) && event.key != 'Backspace' && event.key != 'meta' && event.key != 'shift' && event.key != 'r') {
+        if(isNaN(num) && event.key != 'Backspace' && !isModifierKeyPressed && event.key != 'shift' && event.key != 'r') {
             event.preventDefault();
             const inputs = document.querySelectorAll('input, button, select, textarea');
             inputs.forEach(element => {
                 element.blur();
             });
         }
-        
-        console.log(event.key);
+
     });
 
     const FILE_READER = new FileReader();
@@ -647,15 +696,7 @@
     }
 
     function savePNG() {
-        const virtual_canvas = document.createElement('canvas');
-        virtual_canvas.width = P_SIZE;
-        virtual_canvas.height = P_SIZE;
-        const virtual_ctx = virtual_canvas.getContext('2d');
-
-        LAYERS.forEach(l=>{
-            if(l.showing)
-                drawLayer(virtual_ctx, l,1,null,null,P_SIZE);
-        });
+        const virtual_canvas = buildPreview(P_SIZE);
 
         const url = virtual_canvas.toDataURL('image/png');
         const a = document.createElement('a');
