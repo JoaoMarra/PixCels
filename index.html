@@ -49,6 +49,9 @@
             <button onclick="addColor()" style="margin-bottom: 5px;">
                 New color
             </button>
+            <div style="display:flex;justify-content: space-between; font-size: 8px;margin-bottom: 4px;">
+                <div>< Q</div><div>W ></div>
+            </div>
             <div id="color_div" style="display: flex;flex-wrap: wrap;">
             </div>
         </div>
@@ -59,14 +62,14 @@
             <div id="layer_div">
             </div>
         </div>
-        <button style="position:absolute;right: 270px;top: 20px;" onclick="savePNG()">Salvar PNG</button>
+        <button style="position:absolute;right: 270px;top: 20px;" onclick="savePNG()">Save as PNG</button>
     </div>
 </body>
 <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     const P_SIZE = 56;
-    var DOT_SIZE = 4;
+    var DOT_SIZE = 2;
 
     var DRAW_SIZE = 500;
 
@@ -250,7 +253,7 @@
 
     function drawBack() {
         ctx.fillStyle = "#ddd";
-        const size = DRAW_SIZE/P_SIZE*DOT_SIZE/2;
+        const size = DRAW_SIZE/P_SIZE*2;
         let extra = 0;
         for(let x=START_X; x<START_X+DRAW_SIZE; x+=size) {
             for(let y=START_Y+extra; y<START_Y+DRAW_SIZE; y+=size*2) {
@@ -347,6 +350,12 @@
             LAYERS[CURRENT_LAYER].x -= DOT_SIZE;
         } else if(event.key === 'ArrowRight') {
             LAYERS[CURRENT_LAYER].x += DOT_SIZE;
+        } else if (event.key === 'n' || event.key === 'N') {
+            addColor();
+        } else if (event.key === 'a' || event.key === 'A') {
+            DOT_SIZE = Math.max(1,DOT_SIZE/2);
+        } else if (event.key === 's' || event.key === 'S') {
+            DOT_SIZE = Math.max(1,DOT_SIZE*2);
         }
         // console.log(event.key);
         drawCanvas();
