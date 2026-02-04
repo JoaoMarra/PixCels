@@ -144,15 +144,16 @@
         } else {
             const scaleWidth = DOT_SIZE * DRAW_SIZE/P_SIZE;
 
-            const x = Math.floor((clickX-START_X)/scaleWidth)*DOT_SIZE;
-            const y = Math.floor((clickY-START_Y)/scaleWidth)*DOT_SIZE;
+            const x = Math.floor((clickX-START_X)/scaleWidth)*DOT_SIZE - layer.x;
+            const y = Math.floor((clickY-START_Y)/scaleWidth)*DOT_SIZE - layer.y;
+            console.log(x+" <> "+y);
             const cmd = `ctx.fillRect(${x}, ${y}, ${DOT_SIZE}, ${DOT_SIZE});`;
 
             if (e.shiftKey) {
                 let map;
                 for(let i=0; i < layer.commands.length; i++) {
                     const item = layer.commands[i][0];
-                    const mat = item.match(/\d+/g);
+                    const mat = item.match(/-?\d+/g);
                     if(mat == null)
                         continue;
                     const parts = mat.map(Number);
@@ -190,6 +191,9 @@
         CURRENT_LAYER = i;
         layer = document.getElementById("layer_"+CURRENT_LAYER);
         layer.classList.add('selected');
+
+        if(typeof drawCanvas !== 'undefined')
+            drawCanvas();
     }
 
     function buildColorDiv() {
@@ -221,8 +225,8 @@
 </script>
 <script>
     function drawCanvas() {
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
 
         let x = START_X;
         let y = START_Y;
@@ -230,16 +234,33 @@
         ctx.fillStyle = "#fff";
         ctx.fillRect(x,y,DRAW_SIZE,DRAW_SIZE);
 
+        drawBack();
+
         ctx.save();
         ctx.translate(START_X,START_Y);
         const ratio =  DRAW_SIZE/P_SIZE;
-        LAYERS.forEach(l=>{
+        LAYERS.forEach((l,i)=>{
             if(l.showing)
-                drawLayer(ctx, l,ratio);
+                drawLayer(ctx, l,ratio,CURRENT_LAYER==i);
         });
         ctx.restore();
 
         drawGrid(x,y,ratio);
+    }
+
+    function drawBack() {
+        ctx.fillStyle = "#ddd";
+        const size = DRAW_SIZE/P_SIZE*DOT_SIZE/2;
+        let extra = 0;
+        for(let x=START_X; x<START_X+DRAW_SIZE; x+=size) {
+            for(let y=START_Y+extra; y<START_Y+DRAW_SIZE; y+=size*2) {
+                ctx.fillRect(x, y, size, size);
+            }
+            if(extra == 0)
+                extra = size;
+            else
+                extra = 0;
+        }
     }
 
     function drawGrid(xi,yi,ratio) {
@@ -259,9 +280,9 @@
         }
     }
 
-    function drawLayer(ctx, layer,ratio) {
+    function drawLayer(ctx, layer,ratio,border=false) {
         ctx.save();
-        ctx.translate(layer.x,layer.y);
+        ctx.translate(layer.x*ratio,layer.y*ratio);
 
         layer.commands.forEach(c => {
             const cmd = c[0];
@@ -269,10 +290,16 @@
                 const parts = cmd.split('"');
                 ctx.fillStyle=parts[1];
             } else {
-                const parts = cmd.match(/\d+/g).map(Number);
+                const parts = cmd.match(/-?\d+/g).map(Number);
                 ctx.fillRect(parts[0]*ratio, parts[1]*ratio, parts[2]*ratio, parts[3]*ratio);
             }
         });
+
+        if(border) {
+            ctx.strokeStyle = "#0f0";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0,0,DRAW_SIZE,DRAW_SIZE);
+        }
 
         ctx.restore();
     }
@@ -312,7 +339,17 @@
         } else if (event.key === 'q' || event.key === 'Q') {
             let color = Math.max(CURRENT_COLOR-1,0);
             colorSelect(color);
+        } else if(event.key === 'ArrowUp') {
+            LAYERS[CURRENT_LAYER].y -= DOT_SIZE;
+        } else if(event.key === 'ArrowDown') {
+            LAYERS[CURRENT_LAYER].y += DOT_SIZE;
+        } else if(event.key === 'ArrowLeft') {
+            LAYERS[CURRENT_LAYER].x -= DOT_SIZE;
+        } else if(event.key === 'ArrowRight') {
+            LAYERS[CURRENT_LAYER].x += DOT_SIZE;
         }
+        // console.log(event.key);
+        drawCanvas();
     });
 
     function savePNG() {
