@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>PixCels</title>
+    <style>
+        body { font-family: sans-serif; margin:0; }
+        .box {
+            background: #fff;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .innerBox {
+            background: #eee;
+            border-radius: 10px;
+            padding: 10px;
+            color: #000;
+            cursor: pointer;
+            margin-bottom: 5px;
+            display: flex;
+        }
+        .innerBox.selected {
+            background: #088cff;
+            color: #fff;
+        }
+        .colorBox {
+            width: 20px;
+            height: 20px;
+            box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            border-style: solid;
+            border-color: #000;
+            border-width: 1px;
+        }
+        .colorBox.selected {
+            border-color: #088cff;
+            border-width: 2px;
+        }
+        button {
+
+        }
+    </style>
+</head>
+<body>
+    <div style="position: relative;">
+        <canvas id="canvas" style="background:black; cursor:pointer;"></canvas>
+        <div class="box" style="position: absolute;right: 140px;top: 20px;width: 100px;">
+            <button onclick="addColor()" style="margin-bottom: 5px;">
+                New color
+            </button>
+            <div id="color_div" style="display: flex;flex-wrap: wrap;">
+            </div>
+        </div>
+        <div class="box" style="position: absolute;right: 10px;top: 20px;width: 100px;">
+            <button onclick="addLayer()" style="margin-bottom: 5px;">
+                New layer
+            </button>
+            <div id="layer_div">
+            </div>
+        </div>
+        <button style="position:absolute;right: 270px;top: 20px;" onclick="savePNG()">Salvar PNG</button>
+    </div>
+</body>
+<script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const P_SIZE = 56;
+    var DOT_SIZE = 4;
+
+    var DRAW_SIZE = 500;
+
+    var START_X;
+    var START_Y;
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        START_X = canvas.width/2-DRAW_SIZE/2;
+        START_Y = canvas.height/2-DRAW_SIZE/2;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    const layerDiv = document.getElementById("layer_div");
+    const colorDiv = document.getElementById("color_div");
+</script>
+<script>
+    var LAYERS = [
+        newLayer()
+    ];
+    var CURRENT_LAYER = 0;
+    var COLORS = [
+        "#000",
+        "#fff",
+        "#f00",
+        "#0f0",
+        "#00f"
+    ];
+    var CURRENT_COLOR = 0;
+
+    function newLayer() {
+        return {
+            'x':0,
+            'y':0,
+            'commands':[],
+            'map':{},
+            'lastColor':null,
+            'showing':true
+        }
+    }
+
+    function addLayer() {
+        LAYERS.push(newLayer());
+        refreshLayer();
+    }
+
+    function toggleLayer(l) {
+        LAYERS[l].showing = !LAYERS[l].showing;
+        refreshLayer();
+
+        drawCanvas();
+    }
+
+    function refreshLayer() {
+        buildLayerDiv();
+        layerSelected(CURRENT_LAYER);
+    }
+
+    function buildLayerDiv() {
+        let html = "";
+        LAYERS.forEach((l,i)=>{
+            html += `<div id="layer_${i}" class="innerBox" onclick="layerSelected(${i})">
+            <span>Layer ${i}</span>
+            <button onclick="event.stopPropagation();toggleLayer(${i})">${l.showing?'H':'S'}</button>
+        </div>`;
+    });
+        layerDiv.innerHTML = html;
+    }
+
+    function dotAtLayer(e,layer,clickX,clickY) {
+        if(!layer.showing) {
+            layer.showing = true;
+        } else {
+            const scaleWidth = DOT_SIZE * DRAW_SIZE/P_SIZE;
+
+            const x = Math.floor((clickX-START_X)/scaleWidth)*DOT_SIZE;
+            const y = Math.floor((clickY-START_Y)/scaleWidth)*DOT_SIZE;
+            const cmd = `ctx.fillRect(${x}, ${y}, ${DOT_SIZE}, ${DOT_SIZE});`;
+
+            if (e.shiftKey) {
+                let map;
+                for(let i=0; i < layer.commands.length; i++) {
+                    const item = layer.commands[i][0];
+                    const mat = item.match(/\d+/g);
+                    if(mat == null)
+                        continue;
+                    const parts = mat.map(Number);
+                    if(x >= parts[0] && x < parts[0]+parts[2] && y >= parts[1] && y < parts[1]+parts[3]) {
+                        map = `${parts[0]}_${parts[1]}_${parts[2]}_${parts[3]}_${layer.commands[i][1]}`;
+                        delete layer.map[map];
+                        layer.commands.splice(i,1);
+                        i--;
+                    }
+                }
+            } else {
+                const color = COLORS[CURRENT_COLOR];
+                if(color !== layer.lastColor) {
+                    layer.commands.push([`ctx.fillStyle="${color}";`,color])
+                    layer.lastColor = color;
+                }
+
+                const map = `${x}_${y}_${DOT_SIZE}_${DOT_SIZE}_${color}`;
+                if(layer.map[map] != null) {
+                    layer.commands.splice(layer.commands.findIndex(c=>c[0]==cmd&&c[1]==color),1);
+                }
+                layer.commands.push([cmd,color]);
+                layer.map[map] = 1;
+            }
+        }
+
+        drawCanvas();
+    }
+
+    function layerSelected(i) {
+        let layer = document.getElementById("layer_"+CURRENT_LAYER);
+        if(layer != null)
+            layer.classList.remove('selected');
+
+        CURRENT_LAYER = i;
+        layer = document.getElementById("layer_"+CURRENT_LAYER);
+        layer.classList.add('selected');
+    }
+
+    function buildColorDiv() {
+        let html = "";
+        COLORS.forEach((c,i)=>{
+            html += `<div id="color_${i}" class="colorBox ${CURRENT_COLOR==i?'selected':''}" onclick="colorSelect(${i})" style="background:${c}"></div>`;
+        });
+        colorDiv.innerHTML = html;
+    }
+
+    function colorSelect(i) {
+        CURRENT_COLOR = i;
+        buildColorDiv();
+    }
+
+    function addColor() {
+        const hex = prompt("Digite a cor:");
+        if(hex != null) {
+            COLORS.push(hex);
+            CURRENT_COLOR = COLORS.length-1;
+            buildColorDiv();
+        }
+    }
+
+    buildLayerDiv();
+    layerSelected(0);
+
+    buildColorDiv();
+</script>
+<script>
+    function drawCanvas() {
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        let x = START_X;
+        let y = START_Y;
+
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(x,y,DRAW_SIZE,DRAW_SIZE);
+
+        ctx.save();
+        ctx.translate(START_X,START_Y);
+        const ratio =  DRAW_SIZE/P_SIZE;
+        LAYERS.forEach(l=>{
+            if(l.showing)
+                drawLayer(ctx, l,ratio);
+        });
+        ctx.restore();
+
+        drawGrid(x,y,ratio);
+    }
+
+    function drawGrid(xi,yi,ratio) {
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 0.5;
+        for (let x = xi; x <= xi+DRAW_SIZE; x += DOT_SIZE*ratio) {
+            ctx.beginPath();
+            ctx.moveTo(x, yi);
+            ctx.lineTo(x, yi+DRAW_SIZE);
+            ctx.stroke();
+        }
+        for (let y = yi; y <= yi+DRAW_SIZE; y += DOT_SIZE*ratio) {
+            ctx.beginPath();
+            ctx.moveTo(xi, y);
+            ctx.lineTo(xi+DRAW_SIZE, y);
+            ctx.stroke();
+        }
+    }
+
+    function drawLayer(ctx, layer,ratio) {
+        ctx.save();
+        ctx.translate(layer.x,layer.y);
+
+        layer.commands.forEach(c => {
+            const cmd = c[0];
+            if(cmd.includes('fillStyle')) {
+                const parts = cmd.split('"');
+                ctx.fillStyle=parts[1];
+            } else {
+                const parts = cmd.match(/\d+/g).map(Number);
+                ctx.fillRect(parts[0]*ratio, parts[1]*ratio, parts[2]*ratio, parts[3]*ratio);
+            }
+        });
+
+        ctx.restore();
+    }
+
+    drawCanvas();
+
+</script>
+<script>
+    var touchStartX = 0;
+    var touchStartY = 0;
+    var pressing = false;
+    canvas.addEventListener('mousedown', (e) => {
+        touchStartX = e.clientX;
+        touchStartY = e.clientY;
+
+        if(touchStartX >= START_X && touchStartX <= START_X+DRAW_SIZE && touchStartY >= START_Y && touchStartY <= START_Y+DRAW_SIZE)
+            dotAtLayer(e,LAYERS[CURRENT_LAYER],touchStartX,touchStartY);
+        pressing = true;
+    });
+    canvas.addEventListener('mousemove', (e) => {
+        if(pressing) {
+            touchStartX = e.clientX;
+            touchStartY = e.clientY;
+
+            if(touchStartX >= START_X && touchStartX <= START_X+DRAW_SIZE && touchStartY >= START_Y && touchStartY <= START_Y+DRAW_SIZE)
+                dotAtLayer(e,LAYERS[CURRENT_LAYER],touchStartX,touchStartY);
+        }
+    });
+    canvas.addEventListener('mouseup', (e) => {
+        pressing = false;
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'w' || event.key === 'W') {
+            let color = Math.min(CURRENT_COLOR+1,COLORS.length-1);
+            colorSelect(color);
+        } else if (event.key === 'q' || event.key === 'Q') {
+            let color = Math.max(CURRENT_COLOR-1,0);
+            colorSelect(color);
+        }
+    });
+
+    function savePNG() {
+        const virtual_canvas = document.createElement('canvas');
+        virtual_canvas.width = P_SIZE;
+        virtual_canvas.height = P_SIZE;
+        const virtual_ctx = virtual_canvas.getContext('2d');
+
+        LAYERS.forEach(l=>{
+            if(l.showing)
+                drawLayer(virtual_ctx, l,1);
+        });
+
+        const url = virtual_canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'desenho.png';
+        a.click();
+    }
+</script>
