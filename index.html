@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <title>PixCels</title>
     <style>
+        [hidden] {
+            display: none !important;
+        }
         body { font-family: sans-serif; margin:0; }
         .box {
             background: #fff;
@@ -49,7 +52,11 @@
             font-weight: bold;
             margin-bottom: 10px;
         }
-    </style>
+        canvas {
+           touch-action: none;
+           -webkit-tap-highlight-color: transparent;
+       }
+   </style>
 </head>
 <body>
     <div style="position: relative;">
@@ -66,9 +73,12 @@
                 </div>
             </div>
             <div class="box" style="min-width: 100px;">
-                <button onclick="addLayer()" style="margin-bottom: 5px;">
-                    New layer
-                </button>
+                <div  style="margin-bottom: 5px;">
+                    <button onclick="addLayer()">
+                        New layer
+                    </button>
+                    <button onclick="uploadImage()">Upload image</button>
+                </div>
                 <div style="display: flex;">
                     <div style="font-size: 8px; margin-right: 8px;">
                         <div style="transform: rotate(90deg);"> < </div>
@@ -83,54 +93,74 @@
         </div>
         <div  style="position: absolute;left: 10px; top: 20px;">
             <div class="box" style="margin-bottom:10px;display:flex;flex-direction: column;">
-                <div class="title">Image data</div>
-                <small>Image size</small>
-                <input id="image_size_input" value="50" type="number" placeholder="Image size" onchange="imageSizeChanged(this.value)" style="margin-bottom:6px;">
-
-                <small>Dot size</small>
-                <input id="size_input" value="2" type="number" placeholder="Dot size" onchange="dotSizeChanged(this.value)" style="">
-                <div style="display:flex;justify-content: space-between;font-size: 8px;margin-bottom:6px;">
-                    <div>< A</div><div>S ></div>
+                <div class="title" style="display:flex;align-items: center;">
+                    Image data
+                    <button onclick="toggleDivVisibility('i_d_div')" style="margin-left: auto;">X</button>
                 </div>
-                <button onclick="savePNG()" style="margin-top:10px">Save as PNG</button>
+                <div id="i_d_div" style="display:flex;flex-direction: column;">
+                    <small>Image size</small>
+                    <input id="image_size_input" value="50" type="number" placeholder="Image size" onchange="imageSizeChanged(this.value)" style="margin-bottom:6px;">
+
+                    <small>Dot size</small>
+                    <input id="size_input" value="2" type="number" placeholder="Dot size" onchange="dotSizeChanged(this.value)" style="">
+                    <div style="display:flex;justify-content: space-between;font-size: 8px;margin-bottom:6px;">
+                        <div>< A</div><div>S ></div>
+                    </div>
+                    <button onclick="savePNG()" style="margin-top:10px">Save as PNG</button>
+                </div>
             </div>
             <div class="box" style="margin-bottom:10px;">
-                <div class="title">Virtual layer data</div>
-                <small>Layer offset</small>
-                <div style="display: flex;">
-                    <div style="margin-right: 6px;">
-                        <small>x</small>
-                        <input id="layer_x" type="number" style="width: 50px;" onchange="moveLayer()">
-                    </div>
-                    <div style="margin-right:6px;">
-                        <small>y</small>
-                        <input id="layer_y" type="number" style="width: 50px;" onchange="moveLayer()">
-                    </div>
-                    <button onclick="centerH()" title="Center horizontal">cH</button>
-                    <button onclick="centerV()" title="Center vertical">cV</button>
+                <div class="title" style="display:flex;align-items: center;">
+                    Virtual layer data
+                    <button onclick="toggleDivVisibility('v_l_div')" style="margin-left: auto;">X</button>
                 </div>
+                <div id="v_l_div">
+                    <small>Layer offset</small>
+                    <div style="display: flex;">
+                        <div style="margin-right: 6px;">
+                            <small>x</small>
+                            <input id="layer_x" type="number" style="width: 50px;" onchange="moveLayer()">
+                        </div>
+                        <div style="margin-right:6px;">
+                            <small>y</small>
+                            <input id="layer_y" type="number" style="width: 50px;" onchange="moveLayer()">
+                        </div>
+                        <button onclick="centerH()" title="Center horizontal">cH</button>
+                        <button onclick="centerV()" title="Center vertical">cV</button>
+                    </div>
 
-                <small>Virtual layer size (500x500)</small>
-                <div style="display: flex;">
-                    <div style="margin-right: 6px;">
-                        <small>width</small>
-                        <input id="layer_w" type="number" style="width: 50px;" onchange="resizeLayerW()" min="1">
+                    <small>Virtual layer size</small>
+                    <div style="display: flex;">
+                        <div style="margin-right: 6px;">
+                            <small>width</small>
+                            <input id="layer_w" type="number" style="width: 50px;" onchange="resizeLayerW()" min="1">
+                        </div>
+                        <div style="margin-right: 6px;">
+                            <small>height</small>
+                            <input id="layer_h" type="number" style="width: 50px;" onchange="resizeLayerH()">
+                        </div>
+                        <button id="layer_wh" onclick="toggleLayerWH()" title="Block/Unblock keep original size ratio">B</button>
                     </div>
-                    <div style="margin-right: 6px;">
-                        <small>height</small>
-                        <input id="layer_h" type="number" style="width: 50px;" onchange="resizeLayerH()">
+                    <div style="display:flex;justify-content: space-between; margin-top: 10px;">
+                        <button onclick="moveLeft()"> < </button>
+                        <button onclick="moveUp()" style="transform: rotate(90deg);"> < </button>
+                        <button onclick="moveRight()" style="transform: rotate(180deg);"> < </button>
+                        <button onclick="moveDown()" style="transform: rotate(270deg);"> < </button>
                     </div>
-                    <button id="layer_wh" onclick="toggleLayerWH()" title="Block/Unblock keep original size ratio">B</button>
                 </div>
-                <button onclick="uploadImage()" style="margin-top:10px">Upload image</button>
             </div>
         </div>
     </div>
 </body>
 <script>
+    function toggleDivVisibility(id) {
+        const element = document.getElementById(id);
+        element.hidden = !element.hidden;
+    }
+
     const canvas = document.getElementById("canvas");
     const canvasCtx = canvas.getContext("2d");
-    const DRAW_SIZE = 500;
+    const DRAW_SIZE = Math.min(500,window.innerWidth/2-220);
 
     var P_SIZE = 50;
     var DOT_SIZE = 2;
@@ -143,6 +173,9 @@
 
         START_X = canvas.width/2-DRAW_SIZE/2;
         START_Y = canvas.height/2-DRAW_SIZE/2;
+
+        if(typeof drawCanvas !== 'undefined')
+            drawCanvas();
     }
     window.addEventListener("resize", resize);
     resize();
@@ -262,6 +295,7 @@
     LAYERS.push(newLayer());
     var CURRENT_LAYER = 0;
     var COLORS = [
+        "ERASE",
         "#000",
         "#fff",
         "#eee",
@@ -299,7 +333,7 @@
         "#f0f0ff",
 
     ];
-    var CURRENT_COLOR = 0;
+    var CURRENT_COLOR = 1;
 
     function newLayer(name=null,content=null) {
         let width = DRAW_SIZE;
@@ -356,16 +390,16 @@
             html += `<div id="layer_${i}" class="innerBox" onclick="layerSelected(${i})">
             <span>${l.name}</span>
             <button onclick="event.stopPropagation();toggleLayer(${i})" title="Show/Hide layer" style="margin-left:4px;margin-right:4px;">${l.showing?'H':'S'}</button>`
-            if(i > 0)
-                html += `<button onclick="upLayer(${i})" title="Move layer to back" style="transform:rotate(90deg)"><</button>`;
-            if(i < LAYERS.length-1)
-                html += `<button onclick="downLayer(${i})" title="Move layer to front" style="transform:rotate(90deg)">></button>`
+            html += `<button onclick="event.stopPropagation();upLayer(${i})" title="Move layer to back" style="transform:rotate(90deg)" ${(i == 0)?'disabled':''}><</button>`;
+            html += `<button onclick="event.stopPropagation();downLayer(${i})" title="Move layer to front" style="transform:rotate(90deg)" ${(i == LAYERS.length-1)?'disabled':''}>></button>`
+            html += `<button onclick="event.stopPropagation();deleteLayer(${i})" title="Delete layer" style="background:#f00" ${(LAYERS.length == 1)?'disabled':''}>D</button>`;
             html += `</div>`;
         });
         layerDiv.innerHTML = html;
     }
 
     function dotAtLayer(e,layer,clickX,clickY) {
+        delLayer = null;
         let cx = clickX-(START_X+layer.x);
         let cy = clickY-(START_Y+layer.y);
         if(cx < 0 || cx > layer.width || cy < 0 || cy > layer.height) // out of bounds
@@ -380,7 +414,7 @@
             let x = Math.floor(cx/(DRAW_SIZE/(P_SIZE/DOT_SIZE)))*dSize;
             let y = Math.floor(cy/(DRAW_SIZE/(P_SIZE/DOT_SIZE)))*dSize;
             const map = `${x}_${y}_${dSize}_${color}`;
-            if (e.shiftKey) {
+            if (e.shiftKey || color == 'ERASE') {
                 layer.commands.forEach((c,i)=>{
                     const parts = c[0].split("_").map(Number);
                     if(cx >= parts[0] && cx <= parts[0]+parts[2] && cy >= parts[1] && cy <= parts[1]+parts[2]) {
@@ -402,18 +436,37 @@
 
     function upLayer(i) {
         let layer = LAYERS.splice(i,1);
+        delLayer = null;
         LAYERS.splice(i-1,0,layer[0]);
         CURRENT_LAYER -= 1;
-        buildLayerDiv();
+        refreshLayer();
     }
     function downLayer(i) {
         let layer = LAYERS.splice(i,1);
+        delLayer = null;
         LAYERS.splice(i+1,0,layer[0]);
         CURRENT_LAYER += 1;
-        buildLayerDiv();
+        refreshLayer();
+    }
+    var delLayer = null;
+    function deleteLayer(i) {
+        if(delLayer == i) {
+            delLayer = null;
+            LAYERS.splice(i,1);
+            if(CURRENT_LAYER == i) {
+                CURRENT_LAYER = Math.max(0,i-1);
+            } else if(CURRENT_LAYER >= LAYERS.length) {
+                CURRENT_LAYER = LAYERS.length-1;
+            }
+        } else {
+            delLayer = i;
+        }
+        refreshLayer();
     }
 
     function layerSelected(i) {
+        if(i != CURRENT_LAYER)
+            delLayer = null;
         let layer = document.getElementById("layer_"+CURRENT_LAYER);
         if(layer != null)
             layer.classList.remove('selected');
@@ -438,7 +491,11 @@
     function buildColorDiv() {
         let html = "";
         COLORS.forEach((c,i)=>{
-            html += `<div id="color_${i}" class="colorBox ${CURRENT_COLOR==i?'selected':''}" onclick="colorSelect(${i})" style="background:${c}"></div>`;
+            if(c=="ERASE") {
+                html += `<div id="color_E" class="colorBox ${CURRENT_COLOR==i?'selected':''}" onclick="colorSelect(${i})" style="background:#000;color:#f00" title="Erase">E</div>`;
+            } else {
+                html += `<div id="color_${i}" class="colorBox ${CURRENT_COLOR==i?'selected':''}" onclick="colorSelect(${i})" style="background:${c}" title="${c}"></div>`;   
+            }
         });
         colorDiv.innerHTML = html;
     }
@@ -451,8 +508,9 @@
     function addColor() {
         const hex = prompt("Digite a cor:");
         if(hex != null) {
-            COLORS.push(hex);
-            CURRENT_COLOR = COLORS.length-1;
+            const hexArray = hex.split(' ');
+            COLORS.push(...hexArray);
+            CURRENT_COLOR = COLORS.length-hexArray.length;
             buildColorDiv();
         }
     }
@@ -528,7 +586,7 @@
 
     function drawBack() {
         canvasCtx.globalAlpha = .6;
-        canvasCtx.fillStyle = "#ddd";
+        canvasCtx.fillStyle = "#cbcbcb";
         const size = DRAW_SIZE/13;
         let extra = 0;
         for(let x=START_X; x<START_X+DRAW_SIZE; x+=size) {
@@ -585,6 +643,13 @@
             }
             const parts = c[0].split("_").map(Number);
             ctx.fillRect(parts[0],parts[1],parts[2],parts[2]);
+            if(border && SHIFT_ON) {
+                ctx.strokeStyle="#000";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(parts[0],parts[1],parts[2],parts[2]);
+                ctx.strokeStyle="#fff";
+                ctx.strokeRect(parts[0]+1,parts[1]+1,parts[2]-2,parts[2]-2);
+            }
         });
         ctx.globalAlpha = 1;
         if(border) {
@@ -596,6 +661,13 @@
                 ctx.lineWidth = 2;
             }
             ctx.strokeRect(0,0,layer.w,layer.h);
+
+            var label = layer.name;
+            ctx.fontStyle = '20px arial';
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.fillRect(0,0,8+ctx.measureText(label).width,16);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(label,4,12);
         }
     }
 
@@ -605,43 +677,81 @@
 <script>
     var touchStartX = 0;
     var touchStartY = 0;
+    var currentX = 0;
+    var currentY = 0;
     var pressing = false;
-    canvas.addEventListener('mousedown', (e) => {
-        touchStartX = e.clientX;
-        touchStartY = e.clientY;
+    const DOWN_EVENT = (e) => {
+        if(e.clientX) {
+            touchStartX = e.clientX;
+            touchStartY = e.clientY;   
+        } else {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;  
+        }
 
         dotAtLayer(e,LAYERS[CURRENT_LAYER],touchStartX,touchStartY);
         pressing = true;
-    });
-    canvas.addEventListener('mousemove', (e) => {
-        if(pressing) {
-            touchStartX = e.clientX;
-            touchStartY = e.clientY;
-
-            dotAtLayer(e,LAYERS[CURRENT_LAYER],touchStartX,touchStartY);
+    };
+    const MOVE_EVENT = (e) => {
+        if(e.clientX) {
+            currentX = e.clientX;
+            currentY = e.clientY;   
+        } else {
+            currentX = e.touches[0].clientX;
+            currentY = e.touches[0].clientY;  
         }
-    });
-    canvas.addEventListener('mouseup', (e) => {
-        pressing = false;
-    });
+        if(pressing) {
 
+            dotAtLayer(e,LAYERS[CURRENT_LAYER],currentX,currentY);
+        }
+    };
+    const UP_EVENT = (e) => {
+        pressing = false;
+    };
+    canvas.addEventListener('mousedown', DOWN_EVENT);
+    canvas.addEventListener('touchstart', DOWN_EVENT);
+    canvas.addEventListener('mousemove', MOVE_EVENT);
+    canvas.addEventListener('touchmove', MOVE_EVENT);
+    canvas.addEventListener('mouseup', UP_EVENT);
+    canvas.addEventListener('touchend', UP_EVENT);
+
+    function moveUp() {
+        moveLayer(null,LAYERS[CURRENT_LAYER].y-DRAW_SIZE*DOT_SIZE/P_SIZE);
+    }
+    function moveDown() {
+        moveLayer(null,LAYERS[CURRENT_LAYER].y+DRAW_SIZE*DOT_SIZE/P_SIZE);
+    }
+    function moveLeft() {
+        moveLayer(LAYERS[CURRENT_LAYER].x-DRAW_SIZE*DOT_SIZE/P_SIZE,null);
+    }
+    function moveRight() {
+        moveLayer(LAYERS[CURRENT_LAYER].x+DRAW_SIZE*DOT_SIZE/P_SIZE,null);
+    }
+
+    var SHIFT_ON = false;
     document.addEventListener('keydown', function(event) {
 
         const isModifierKeyPressed = event.ctrlKey || event.metaKey;
         if (event.key === 'w' || event.key === 'W') {
-            let color = Math.min(CURRENT_COLOR+1,COLORS.length-1);
+            let color = CURRENT_COLOR+1;
+            if(color >= COLORS.length) {
+                color = 0;
+            }
             colorSelect(color);
         } else if (event.key === 'q' || event.key === 'Q') {
-            let color = Math.max(CURRENT_COLOR-1,0);
+            let color = CURRENT_COLOR-1;
+            if(color < 0) {
+                color = COLORS.length-1;
+            }
             colorSelect(color);
         } else if(event.key === 'ArrowUp') {
-            moveLayer(null,LAYERS[CURRENT_LAYER].y-DRAW_SIZE*DOT_SIZE/P_SIZE);
+            moveUp();
         } else if(event.key === 'ArrowDown') {
-            moveLayer(null,LAYERS[CURRENT_LAYER].y+DRAW_SIZE*DOT_SIZE/P_SIZE);
+            moveDown();
         } else if(event.key === 'ArrowLeft') {
-            moveLayer(LAYERS[CURRENT_LAYER].x-DRAW_SIZE*DOT_SIZE/P_SIZE,null);
+            moveLeft();
         } else if(event.key === 'ArrowRight') {
-            moveLayer(LAYERS[CURRENT_LAYER].x+DRAW_SIZE*DOT_SIZE/P_SIZE,null);
+            moveRight();
         } else if (event.key === 'n' || event.key === 'N') {
             addColor();
         } else if (event.key === 'a' || event.key === 'A') {
@@ -656,17 +766,27 @@
             uploadImage();
         } else if(isModifierKeyPressed && (event.key === 'z' || event.key === 'Z')) {
             rewind();
+        } else if (event.key === 'c' || event.key === 'C') {
+            dotAtLayer(event,LAYERS[CURRENT_LAYER],currentX,currentY);
+        } else if(event.key === 'Shift') {
+            SHIFT_ON = true;
+            drawCanvas();
         }
 
         let num = parseInt(event.key);
-        if(isNaN(num) && event.key != 'Backspace' && !isModifierKeyPressed && event.key != 'shift' && event.key != 'r') {
+        if(isNaN(num) && event.key != 'Backspace' && !isModifierKeyPressed && event.key != 'Shift' && event.key != 'r') {
             event.preventDefault();
             const inputs = document.querySelectorAll('input, button, select, textarea');
             inputs.forEach(element => {
                 element.blur();
             });
         }
-
+    });
+    document.addEventListener('keyup', function(event) {
+        if(event.key === 'Shift') {
+            SHIFT_ON = false;
+            drawCanvas();
+        }
     });
 
     const FILE_READER = new FileReader();
@@ -701,7 +821,7 @@
         const url = virtual_canvas.toDataURL('image/png');
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'desenho.png';
+        a.download = 'pixcels_draw.png';
         a.click();
     }
 </script>
